@@ -262,7 +262,7 @@ export default class VideoPlayer extends Component {
     } else {
       padding = 20;
     }
-
+    this.setState({seekBarViewWidth: nativeEvent.layout.width});
     this.seekBarWidth = nativeEvent.layout.width - padding;
   }
 
@@ -420,10 +420,8 @@ export default class VideoPlayer extends Component {
     let hour = parseInt(seconds/3600);
     let minute = parseInt(seconds/60);
     let sec = parseInt(seconds%60);
-    console.log("Test input sec=", seconds, "hour=", hour, "minute=", minute, "sec=", sec);
     let formatTime = 0;
     if(hour > 99) {
-      console.log("Test input time out of bound, seconds=", seconds);
       return formatTime;
     }
     if(seconds === 0) {
@@ -505,6 +503,28 @@ export default class VideoPlayer extends Component {
 
   renderSeekBar(fullWidth) {
     const { customStyles, disableSeek } = this.props;
+    let blockData = this.props.blocks;
+    let blockView = [];
+    if (blockData
+        && Array.isArray(blockData)
+        && blockData.length > 0) {
+      blockData.forEach((element, index) => {
+        if ((this.props.duration || this.state.duration) < element.start) {
+            return;
+        }
+        blockView.push(<View 
+          key={index}
+          style={{
+            zIndex: 1,
+            backgroundColor: 'blue',
+            position:'absolute', 
+            left: element.start * this.state.seekBarViewWidth / (this.props.duration || this.state.duration), 
+            height: 3, 
+            width: element.duration * this.state.seekBarViewWidth / (this.props.duration || this.state.duration),
+          }} 
+        />);
+      });
+    }
     return (
       <View
         style={[
@@ -544,6 +564,11 @@ export default class VideoPlayer extends Component {
           { flexGrow: 1 - this.state.progress },
           customStyles.seekBarBackground,
         ]} />
+        {
+          blockView.map((element, index) => {
+            return element;
+          })
+        }
       </View>
     );
   }
