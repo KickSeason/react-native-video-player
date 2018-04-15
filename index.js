@@ -1,6 +1,17 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { Image, ImageBackground, Platform, StyleSheet, TouchableOpacity, View, ViewPropTypes, Text} from 'react-native';
+import { 
+  Image, 
+  ImageBackground, 
+  Platform, 
+  StyleSheet, 
+  TouchableOpacity, 
+  View, 
+  ViewPropTypes,
+  Text, 
+  StatusBar,
+  ToastAndroid,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video'; // eslint-disable-line
 
@@ -171,7 +182,18 @@ export default class VideoPlayer extends Component {
       width,
     });
   }
-
+  onSettingBtn = () => {
+    if (this.props.onSettingBtn) {
+      this.props.onSettingBtn('setting');
+    }
+    this.setState({isControlsVisible: false});
+  }
+  onRightBottomBtn = () => {
+    if (this.props.onRightBottomBtn) {
+      this.props.onRightBottomBtn('list');
+    }
+    this.setState({isControlsVisible: false});
+  }
   onStartPress() {
     if (this.props.onStart) {
       this.props.onStart();
@@ -187,6 +209,7 @@ export default class VideoPlayer extends Component {
   }
 
   onProgress(event) {
+    let {blocks} =  this.props;
     if (this.state.isSeeking) {
       return;
     }
@@ -195,7 +218,18 @@ export default class VideoPlayer extends Component {
     }
     this.setState({
       progress: event.currentTime / (this.props.duration || this.state.duration),
+      currentTime: event.currentTime,
     });
+    if (this.props.showBlocks) {
+      for(let i = 0; i < blocks.length; i++) {
+        if (blocks[i].start < event.currentTime && event.currentTime < blocks[i].start + blocks[i].duration) {
+          blocks[i].visibility = 'flex';
+        } else {
+          blocks[i].visibility = 'none';
+        }
+      }
+      this.setState({blocks});
+    }
   }
 
   onEnd(event) {
@@ -301,15 +335,11 @@ export default class VideoPlayer extends Component {
   }
 
   onVolCtrlGrant(e) {
-    console.log("Test vol ctrl grant start, pos=", e.nativeEvent.pageY);
-    const volBarNeedShow = true;
     this.volControlTouchStart = e.nativeEvent.pageY;
     this.showControls();
-    this.setState({volBarNeedShow});
   }
 
   onVolCtrlRelease() {
-    console.log("Test vol ctrl touch release");
     const volBarNeedShow = false;
     this.setState({volBarNeedShow});
   }
@@ -319,6 +349,9 @@ export default class VideoPlayer extends Component {
     const senseFactor = 5/4;
     const diff = this.volControlTouchStart - e.nativeEvent.pageY;
     const volChange = diff / (this.getSizeStyles().height) * senseFactor;
+    if (2 < diff || diff < -2) {
+      this.setState({volBarNeedShow: true, isControlsVisible: true});
+    }
     volume = volume + volChange;   
     if(volume > 1) {
       volume = 1;
@@ -326,12 +359,10 @@ export default class VideoPlayer extends Component {
     if(volume < 0) {
       volume = 0;
     }
-    console.log("Test onVolControl,pos=", e.nativeEvent.pageY,"new vol=", volume, "vol control touch start=", this.volControlTouchStart); 
     this.volControlTouchStart = e.nativeEvent.pageY;
     let mutedChg = ((volume == 0 && this.state.volume > 0 && !this.state.isMuted) || (volume > 0 && this.state.volume == 0) 
                     || (this.state.isMuted && volChange > 0));
     const isMuted = (mutedChg ? (!this.state.isMuted) : (this.state.isMuted));
-    console.log("Test mutedChg=", mutedChg, "new mute status=", isMuted);
     this.setState({
       volume,
       isMuted,
@@ -379,6 +410,12 @@ export default class VideoPlayer extends Component {
   }
 
   showControls() {
+    if (this.state.isControlsVisible) {
+      this.setState({
+        isControlsVisible: false,
+      });
+      return;
+    }
     if (this.props.onShowControls) {
       this.props.onShowControls();
     }
@@ -434,7 +471,7 @@ export default class VideoPlayer extends Component {
       minute = '0' + minute.toString();
     }
     if(sec < 10) {
-      minute = '0' + sec.toString();
+      sec = '0' + sec.toString();
     }
     if(hour > 0) {
       formatTime = hour + ':' + minute + ':' + sec;
@@ -447,7 +484,6 @@ export default class VideoPlayer extends Component {
 
   getMuteStatus() {
     this.state.isMuted = (this.state.volume === 0 ? true : false);
-    console.log("Test isMuted=", this.state.isMuted, "vol=", this.state.volume);
     return this.props.muted || this.state.isMuted;
   }
 
@@ -565,9 +601,9 @@ export default class VideoPlayer extends Component {
           customStyles.seekBarBackground,
         ]} />
         {
-          blockView.map((element, index) => {
+          this.props.showBlocks ? blockView.map((element, index) => {
             return element;
-          })
+          }) : null
         }
       </View>
     );
@@ -641,7 +677,7 @@ export default class VideoPlayer extends Component {
         {this.renderSeekBar()}
         {
           <Text style={styles.timeSyle}>
-            {this.formatTime(this.state.duration)}
+            {this.formatTime(this.state.currentTime)}/{this.formatTime(this.state.duration)}
           </Text>
         }
         {this.props.muted ? null : (
@@ -662,6 +698,11 @@ export default class VideoPlayer extends Component {
             />
           </TouchableOpacity>
         )}
+        {
+          <TouchableOpacity onPress={this.onRightBottomBtn} style={customStyles.controlButton}>
+            <Text style={{color: 'white', fontSize: 16, paddingRight: 5}}>推荐</Text>
+          </TouchableOpacity>
+        }
       </View>
     );
   }
@@ -744,7 +785,13 @@ export default class VideoPlayer extends Component {
     const {height} = this.getSizeStyles();
     const {videoTitle} = this.props;
     return (
-      <View style={{marginTop: -height, marginBottom: height, flexDirection: 'row', justifyContent: 'center', }}>
+      <View>
+        <StatusBar
+          backgroundColor='rgba(0, 0, 0, 0.6)'
+          translucent={true}
+          hidden={!this.state.isControlsVisible} 
+        />
+      <View style={{marginTop: -height + StatusBar.currentHeight, marginBottom: height, flexDirection: 'row', justifyContent: 'center', zIndex: 2, backgroundColor: 'rgba(0, 0, 0, 0.6)'}}>
         <TouchableOpacity 
           style={{flex: 1,paddingLeft: 10, justifyContent: 'center'}}
           onPress={this.onBack}
@@ -752,7 +799,7 @@ export default class VideoPlayer extends Component {
           <Icon name="arrow-back" size={25} color="white" />
         </TouchableOpacity>
         <View 
-          style={{flex: 5, alignItems: 'flex-start'}}
+          style={{flex: 8, alignItems: 'flex-start'}}
         >
           <Text 
             style={{color: 'white', backgroundColor: 'transparent', fontSize: 18}}
@@ -762,15 +809,45 @@ export default class VideoPlayer extends Component {
             {videoTitle}
           </Text>
         </View>
+        <View style={{flex: 1}}>
+        <TouchableOpacity 
+            style={{flex: 1, paddingLeft: 10, justifyContent: 'center'}}
+            onPress={this.onSettingBtn}
+          >
+            <Icon name="settings" size={25} color="white" />
+        </TouchableOpacity>
+        </View>
+      </View>
       </View>
     );
   }
 
   render() {
+    let {blocks} = this.state;
+    let tagViews = [];
+    if (this.props.showBlocks && blocks && Array.isArray(blocks) && 0 < blocks.length) {
+      for (let i = 0; i < blocks.length; i++) {
+        let tag = blocks[i];
+        tagViews.push(
+          <View key={i} style={{position: 'absolute',top: tag.position.x, left: tag.position.y, backgroundColor: 'gray', display: tag.visibility, zIndex: 1}}>
+            <TouchableOpacity
+              onPress={() => {
+                ToastAndroid.show(`open tmall, productId=${tag.productId}`, ToastAndroid.SHORT);
+              }}
+            >
+              <Text style={{color: 'white', fontSize: 12}}>{tag.title}</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+    }
     return (
       <View onLayout={this.onLayout} style={this.props.customStyles.wrapper}>
         {this.renderContent()}
         {(!this.state.isPlaying || this.state.isControlsVisible) ? this.renderHeader(): null}
+        {this.props.showBlocks ? (tagViews.map((element, index) => {
+          return element;
+        })) : null}
       </View>
     );
   }
