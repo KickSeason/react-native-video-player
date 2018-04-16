@@ -11,6 +11,7 @@ import {
   Text, 
   StatusBar,
   ToastAndroid,
+  Linking,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video'; // eslint-disable-line
@@ -47,6 +48,7 @@ const styles = StyleSheet.create({
     height: 48,
     marginTop: -48,
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
   },
@@ -129,11 +131,11 @@ export default class VideoPlayer extends Component {
       isPlaying: props.autoplay,
       width: 200,
       progress: 0,
-      isMuted: true,
+      isMuted: this.props.muted ? this.props.muted : false,
       isControlsVisible: !props.hideControlsOnStart,
       duration: 0,
       isSeeking: false,
-      volume: 0,
+      volume: this.props.volume,
       volBarNeedShow: false,
     };
 
@@ -345,11 +347,11 @@ export default class VideoPlayer extends Component {
   }
 
   onVolControl(e) {
-    let volume = this.state.volume;
+    let volume = this.props.volume;
     const senseFactor = 5/4;
     const diff = this.volControlTouchStart - e.nativeEvent.pageY;
     const volChange = diff / (this.getSizeStyles().height) * senseFactor;
-    if (2 < diff || diff < -2) {
+    if (1 < diff || diff < -1) {
       this.setState({volBarNeedShow: true, isControlsVisible: true});
     }
     volume = volume + volChange;   
@@ -360,13 +362,17 @@ export default class VideoPlayer extends Component {
       volume = 0;
     }
     this.volControlTouchStart = e.nativeEvent.pageY;
-    let mutedChg = ((volume == 0 && this.state.volume > 0 && !this.state.isMuted) || (volume > 0 && this.state.volume == 0) 
+    let mutedChg = ((volume == 0 && this.state.volume > 0 && !this.state.isMuted) //|| (volume > 0 && this.state.volume == 0) 
                     || (this.state.isMuted && volChange > 0));
     const isMuted = (mutedChg ? (!this.state.isMuted) : (this.state.isMuted));
     this.setState({
       volume,
       isMuted,
     });
+    if　(this.props.onVolumeChange) {
+      this.props.onVolumeChange(volume);
+    }
+    console.log('volcontrol:', volume, 'mutedChg', mutedChg);
   }
 
   onSeek(e) {
@@ -555,7 +561,8 @@ export default class VideoPlayer extends Component {
             backgroundColor: 'blue',
             position:'absolute', 
             left: element.start * this.state.seekBarViewWidth / (this.props.duration || this.state.duration), 
-            height: 3, 
+            height: 3,
+            borderRadius: 3,
             width: element.duration * this.state.seekBarViewWidth / (this.props.duration || this.state.duration),
           }} 
         />);
@@ -680,7 +687,7 @@ export default class VideoPlayer extends Component {
             {this.formatTime(this.state.currentTime)}/{this.formatTime(this.state.duration)}
           </Text>
         }
-        {this.props.muted ? null : (
+        {/* {this.props.muted ? null : (
           <TouchableOpacity onPress={this.onMutePress} style={customStyles.controlButton}>
             <Icon
               style={[styles.extraControl, customStyles.controlIcon]}
@@ -688,7 +695,7 @@ export default class VideoPlayer extends Component {
               size={24}
             />
           </TouchableOpacity>
-        )}
+        )} */}
         {(Platform.OS === 'android' || this.props.disableFullscreen) ? null : (
           <TouchableOpacity onPress={this.onToggleFullScreen} style={customStyles.controlButton}>
             <Icon
@@ -700,7 +707,7 @@ export default class VideoPlayer extends Component {
         )}
         {
           <TouchableOpacity onPress={this.onRightBottomBtn} style={customStyles.controlButton}>
-            <Text style={{color: 'white', fontSize: 16, paddingRight: 5}}>推荐</Text>
+            <Text style={{color: 'white', fontSize: 15, paddingLeft: 10, paddingRight: 10}}>推荐</Text>
           </TouchableOpacity>
         }
       </View>
@@ -728,7 +735,7 @@ export default class VideoPlayer extends Component {
             customStyles.video,
           ]}
           ref={p => { this.player = p; }}
-          volume={this.state.volume}          
+          volume={this.props.volume}          
           muted={this.props.muted || this.state.isMuted}
           paused={!this.state.isPlaying}
           onProgress={this.onProgress}
@@ -789,7 +796,7 @@ export default class VideoPlayer extends Component {
         <StatusBar
           backgroundColor='rgba(0, 0, 0, 0.6)'
           translucent={true}
-          hidden={!this.state.isControlsVisible} 
+          hidden={this.state.isPlaying && !this.state.isControlsVisible} 
         />
       <View style={{marginTop: -height + StatusBar.currentHeight, marginBottom: height, flexDirection: 'row', justifyContent: 'center', zIndex: 2, backgroundColor: 'rgba(0, 0, 0, 0.6)'}}>
         <TouchableOpacity 
@@ -828,17 +835,22 @@ export default class VideoPlayer extends Component {
     if (this.props.showBlocks && blocks && Array.isArray(blocks) && 0 < blocks.length) {
       for (let i = 0; i < blocks.length; i++) {
         let tag = blocks[i];
-        tagViews.push(
-          <View key={i} style={{position: 'absolute',top: tag.position.x, left: tag.position.y, backgroundColor: 'gray', display: tag.visibility, zIndex: 1}}>
-            <TouchableOpacity
-              onPress={() => {
-                ToastAndroid.show(`open tmall, productId=${tag.productId}`, ToastAndroid.SHORT);
-              }}
-            >
-              <Text style={{color: 'white', fontSize: 12}}>{tag.title}</Text>
-            </TouchableOpacity>
-          </View>
-        );
+        if (tag.visibility == 'flex') {
+          tagViews.push(
+            <View key={i} style={{position: 'absolute',top: tag.position.x, left: tag.position.y, backgroundColor: 'gray', display: 'flex', zIndex: 1}}>
+              <TouchableOpacity
+                onPress={() => {
+                  ToastAndroid.show(`open tmall, productId=${tag.productId}`, ToastAndroid.SHORT);
+                  Linking.openURL(tag.url).catch(err => {
+                    console.log('[video]tag open url error:', err.message);
+                  });
+                }}
+              >
+                <Text style={{color: 'white', fontSize: 12}}>{tag.title}</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }
       }
     }
     return (
