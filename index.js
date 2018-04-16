@@ -211,7 +211,6 @@ export default class VideoPlayer extends Component {
   }
 
   onProgress(event) {
-    let {blocks} =  this.props;
     if (this.state.isSeeking) {
       return;
     }
@@ -222,16 +221,6 @@ export default class VideoPlayer extends Component {
       progress: event.currentTime / (this.props.duration || this.state.duration),
       currentTime: event.currentTime,
     });
-    if (this.props.showBlocks) {
-      for(let i = 0; i < blocks.length; i++) {
-        if (blocks[i].start < event.currentTime && event.currentTime < blocks[i].start + blocks[i].duration) {
-          blocks[i].visibility = 'flex';
-        } else {
-          blocks[i].visibility = 'none';
-        }
-      }
-      this.setState({blocks});
-    }
   }
 
   onEnd(event) {
@@ -830,36 +819,14 @@ export default class VideoPlayer extends Component {
   }
 
   render() {
-    let {blocks} = this.state;
-    let tagViews = [];
-    if (this.props.showBlocks && blocks && Array.isArray(blocks) && 0 < blocks.length) {
-      for (let i = 0; i < blocks.length; i++) {
-        let tag = blocks[i];
-        if (tag.visibility == 'flex') {
-          tagViews.push(
-            <View key={i} style={{position: 'absolute',top: tag.position.x, left: tag.position.y, backgroundColor: 'gray', display: 'flex', zIndex: 1}}>
-              <TouchableOpacity
-                onPress={() => {
-                  ToastAndroid.show(`open tmall, productId=${tag.productId}`, ToastAndroid.SHORT);
-                  Linking.openURL(tag.url).catch(err => {
-                    console.log('[video]tag open url error:', err.message);
-                  });
-                }}
-              >
-                <Text style={{color: 'white', fontSize: 12}}>{tag.title}</Text>
-              </TouchableOpacity>
-            </View>
-          );
-        }
-      }
-    }
+    
     return (
       <View onLayout={this.onLayout} style={this.props.customStyles.wrapper}>
         {this.renderContent()}
         {(!this.state.isPlaying || this.state.isControlsVisible) ? this.renderHeader(): null}
-        {this.props.showBlocks ? (tagViews.map((element, index) => {
-          return element;
-        })) : null}
+        {this.props.showBlocks ? (this.props.tagViews.map((element, index) => {
+            return element;
+            })) : null}
       </View>
     );
   }
