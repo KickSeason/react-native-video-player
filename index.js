@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video'; // eslint-disable-line
+import SystemSetting from 'react-native-system-setting'
 
 const BackgroundImage = ImageBackground || Image; // fall back to Image if RN < 0.46
 
@@ -135,7 +136,7 @@ export default class VideoPlayer extends Component {
       isControlsVisible: !props.hideControlsOnStart,
       duration: 0,
       isSeeking: false,
-      volume: this.props.volume,
+      volume: 0,
       volBarNeedShow: false,
     };
 
@@ -164,7 +165,15 @@ export default class VideoPlayer extends Component {
     this.onVolControl = this.onVolControl.bind(this);
     this.onBack = this.props.onBack;
   }
-
+  componentWillMount() {
+    SystemSetting.getVolume().then((volume)=>{
+      this.setState({volume});
+    });
+    const volumeListener = SystemSetting.addVolumeListener(data => {
+      this.setState({volume: data.value});
+    });
+    this.setState({volumeListener});
+  }
   componentDidMount() {
     if (this.props.autoplay) {
       this.hideControls();
@@ -176,6 +185,7 @@ export default class VideoPlayer extends Component {
       clearTimeout(this.controlsTimeout);
       this.controlsTimeout = null;
     }
+    SystemSetting.removeVolumeListener(this.state.volumeListener);
   }
 
   onLayout(event) {
@@ -336,7 +346,7 @@ export default class VideoPlayer extends Component {
   }
 
   onVolControl(e) {
-    let volume = this.props.volume;
+    let volume = this.state.volume;
     const senseFactor = 5/4;
     const diff = this.volControlTouchStart - e.nativeEvent.pageY;
     const volChange = diff / (this.getSizeStyles().height) * senseFactor;
@@ -361,6 +371,7 @@ export default class VideoPlayer extends Component {
     if　(this.props.onVolumeChange) {
       this.props.onVolumeChange(volume);
     }
+    SystemSetting.setVolume(volume);
     console.log('volcontrol:', volume, 'mutedChg', mutedChg);
   }
 
@@ -724,7 +735,7 @@ export default class VideoPlayer extends Component {
             customStyles.video,
           ]}
           ref={p => { this.player = p; }}
-          volume={this.props.volume}          
+          volume={this.state.volume}          
           muted={this.props.muted || this.state.isMuted}
           paused={!this.state.isPlaying}
           onProgress={this.onProgress}
