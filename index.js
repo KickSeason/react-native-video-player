@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import { 
+import {
+  ActivityIndicator, 
   Image, 
   ImageBackground, 
   Platform, 
@@ -15,7 +16,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video'; // eslint-disable-line
-import SystemSetting from 'react-native-system-setting'
+import SystemSetting from 'react-native-system-setting';
 
 const BackgroundImage = ImageBackground || Image; // fall back to Image if RN < 0.46
 
@@ -130,6 +131,7 @@ export default class VideoPlayer extends Component {
     this.state = {
       isStarted: props.autoplay,
       isPlaying: props.autoplay,
+      isLoading: false,
       width: 200,
       progress: 0,
       isMuted: this.props.muted ? this.props.muted : false,
@@ -206,6 +208,20 @@ export default class VideoPlayer extends Component {
     }
     this.setState({isControlsVisible: false});
   }
+  start() {
+    console.log('video player start');
+    if (this.props.onStart) {
+      this.props.onStart();
+    }
+
+    this.setState(state => ({
+      isPlaying: true,
+      isStarted: true,
+      progress: state.progress === 1 ? 0 : state.progress,
+    }));
+
+    this.hideControls();
+  }
   onStartPress() {
     if (this.props.onStart) {
       this.props.onStart();
@@ -261,7 +277,7 @@ export default class VideoPlayer extends Component {
     }
 
     const { duration } = event;
-    this.setState({ duration });
+    this.setState({ duration, isLoading: false });
   }
 
   onPlayPress() {
@@ -778,10 +794,16 @@ export default class VideoPlayer extends Component {
 
     if (!isStarted && thumbnail) {
       return this.renderThumbnail();
-    } else if (!isStarted) {
+    } else if (!isStarted ) {
       return (
         <View style={[styles.preloadingPlaceholder, this.getSizeStyles(), style]}>
           {this.renderStartButton()}
+        </View>
+      );
+    } else if (!this.props.video.uri) {
+      return (
+        <View style={[styles.preloadingPlaceholder, this.getSizeStyles(), style]}>
+        <ActivityIndicator color='white' size='large' />
         </View>
       );
     }
@@ -830,7 +852,6 @@ export default class VideoPlayer extends Component {
   }
 
   render() {
-    
     return (
       <View onLayout={this.onLayout} style={this.props.customStyles.wrapper}>
         {this.renderContent()}
