@@ -81,3 +81,20 @@ All other props are passed to the react-native-video component.
   - [ ] Add fullscreen button for Android (See PR #38 if you need fullscreen in Android)
 - [ ] Add loader
 - [X] Add video duration/play time
+## New Props  
+add volume controller and some business related functions.
+1. control volume by touching left half screen, and use react-native-system-setting to bind phone volume.
+2. a header with back button and setting button and title.
+3. right bottom corner a '推荐' button
+4. seek bar blocks and video tags when playing
+
+| Prop                    | Description                                                                                 |
+|-------------------------|---------------------------------------------------------------------------------------------|
+| videoTitle              | the video title to show                                                                     |
+| blocks                  | show blocks in the seek bar to attention.(details followed)                                 |
+| tagViews                | show tags on the video.(details followed)                                                   |
+| showBlocks              | show blocks and tags or not                                                                 |
+| onBack                  | on back head button click                                                                   |
+| onSettingBtn            | invoke when setting button clicked which on the right corner of the header                  |
+| onRightBottomBtn        | i add a '推荐' button in the right bottom corner to replace full screen button               |
+| onVolumeChanged         | when volume changed invoke                                                                  |
