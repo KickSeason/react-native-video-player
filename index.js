@@ -19,7 +19,15 @@ import Video from 'react-native-video'; // eslint-disable-line
 import SystemSetting from 'react-native-system-setting';
 
 const BackgroundImage = ImageBackground || Image; // fall back to Image if RN < 0.46
-
+const YsIcon = {
+  play: require('./icon/play.png'),
+  back: require('./icon/back.png'),
+  knob: require('./icon/knob.png'),
+  more: require('./icon/more.png'),
+  next: require('./icon/next.png'),
+  pause: require('./icon/pause.png'),
+  playCircle: require('./icon/play-circle.png'),
+}
 const styles = StyleSheet.create({
   preloadingPlaceholder: {
     backgroundColor: 'black',
@@ -83,13 +91,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F00',
   },
   seekBarKnob: {
-    width: 20,
-    height: 20,
-    marginHorizontal: -8,
-    marginVertical: -10,
-    borderRadius: 10,
-    backgroundColor: '#F00',
-    transform: [{ scale: 0.8 }],
+    // width: 20,
+    // height: 20,
+    // marginHorizontal: -8,
+    // marginVertical: -10,
+    // borderRadius: 10,
+    // backgroundColor: '#F00',
+    //transform: [{ scale: 0.8 }],
     zIndex: 2,
   },
   seekBarBackground: {
@@ -516,7 +524,7 @@ export default class VideoPlayer extends Component {
         style={[styles.playButton, customStyles.playButton]}
         onPress={this.onStartPress}
       >
-        <Icon style={[styles.playArrow, customStyles.playArrow]} name="play-arrow" size={42} />
+        <Image style={[styles.playArrow, customStyles.playArrow]} source={YsIcon.playCircle} size={42} />
       </TouchableOpacity>
     );
   }
@@ -602,14 +610,15 @@ export default class VideoPlayer extends Component {
           ]}
         />
         { !fullWidth && !disableSeek ? (
-          <View
+          <Image
             style={[
               styles.seekBarKnob,
               customStyles.seekBarKnob,
-              this.state.isSeeking ? { transform: [{ scale: 1 }] } : {},
+              this.state.isSeeking ? { transform: [{ scale: 1.2 }] } : {},
               this.state.isSeeking ? customStyles.seekBarKnobSeeking : {},
             ]}
             hitSlop={{ top: 20, bottom: 20, left: 10, right: 20 }}
+            source={YsIcon.knob}
             onStartShouldSetResponder={this.onSeekStartResponder}
             onMoveShouldSetPanResponder={this.onSeekMoveResponder}
             onResponderGrant={this.onSeekGrant}
@@ -689,11 +698,10 @@ export default class VideoPlayer extends Component {
       <View style={[styles.controls, customStyles.controls]}>
         <TouchableOpacity
           onPress={this.onPlayPress}
-          style={[customStyles.controlButton, customStyles.playControl]}
+          style={[customStyles.controlButton, customStyles.playControl, {padding: 10}]}
         >
-          <Icon
-            style={[styles.playControl, customStyles.controlIcon, customStyles.playIcon]}
-            name={this.state.isPlaying ? 'pause' : 'play-arrow'}
+          <Image
+            source={this.state.isPlaying ? YsIcon.pause : YsIcon.play}
             size={32}
           />
         </TouchableOpacity>
@@ -825,7 +833,7 @@ export default class VideoPlayer extends Component {
           style={{flex: 1,paddingLeft: 10, justifyContent: 'center'}}
           onPress={this.onBack}
         >
-          <Icon name="arrow-back" size={25} color="white" />
+          <Image source={YsIcon.back} size={25} />
         </TouchableOpacity>
         <View 
           style={{flex: 8, alignItems: 'flex-start'}}
@@ -843,7 +851,7 @@ export default class VideoPlayer extends Component {
             style={{flex: 1, paddingLeft: 10, justifyContent: 'center'}}
             onPress={this.onSettingBtn}
           >
-            <Icon name="settings" size={25} color="white" />
+            <Image source={YsIcon.more} size={25} />
         </TouchableOpacity>
         </View>
       </View>
