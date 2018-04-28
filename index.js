@@ -230,6 +230,26 @@ export default class VideoPlayer extends Component {
 
     this.hideControls();
   }
+  resume() {
+    if (this.props.onResume) {
+      this.props.onResume();
+    }
+
+    this.setState({
+      isPlaying: true,
+    });
+    this.showControls();
+  }
+  pause() {
+    if (this.props.onPause) {
+      this.props.onPause();
+    }
+
+    this.setState({
+      isPlaying: false,
+    });
+    this.showControls();
+  }
   onStartPress() {
     if (this.props.onStart) {
       this.props.onStart();
@@ -578,15 +598,18 @@ export default class VideoPlayer extends Component {
         if ((this.props.duration || this.state.duration) < element.start) {
             return;
         }
+        if ((this.props.duration || this.state.duration) < element.duration) {
+          element.duration = (this.props.duration || this.state.duration);
+        }
         blockView.push(<View 
           key={index}
           style={{
             zIndex: 1,
-            backgroundColor: 'blue',
+            backgroundColor: '#FFFFFFFF',
             position:'absolute', 
             left: element.start * this.state.seekBarViewWidth / (this.props.duration || this.state.duration), 
-            height: 3,
-            borderRadius: 3,
+            height: 4,
+            borderRadius: 2,
             width: element.duration * this.state.seekBarViewWidth / (this.props.duration || this.state.duration),
           }} 
         />);
